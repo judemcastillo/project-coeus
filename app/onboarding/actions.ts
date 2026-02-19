@@ -1,23 +1,18 @@
 "use server";
 
-import { auth } from "@/auth";
-import { redirect } from "next/navigation";
 import { z } from "zod";
-import { createOrganizationForUser } from "@/features/org/org.service";
+import { redirect } from "next/navigation";
+import { getDbUser } from "@/features/auth/getDbUser";
+import { createOrgForUser } from "@/features/org/org.service";
 
 const schema = z.object({
-  orgName: z.string().min(2).max(60),
+	orgName: z.string().min(2).max(60),
 });
 
 export async function createOrgAction(formData: FormData) {
-  const session = await auth();
-  const userId = session?.user?.id;
-  if (!userId) throw new Error("UNAUTHORIZED");
+	const { orgName } = schema.parse({ orgName: formData.get("orgName") });
+	const dbUser = await getDbUser();
 
-  const { orgName } = schema.parse({
-    orgName: formData.get("orgName"),
-  });
-
-  await createOrganizationForUser({ userId, orgName });
-  redirect("/dashboard");
+	await createOrgForUser({ userId: dbUser.id, name: orgName });
+	redirect("/dashboard");
 }
