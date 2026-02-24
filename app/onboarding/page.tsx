@@ -1,14 +1,23 @@
 import { redirect } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
+import { requireAuth } from "@/features/auth/requireAuth";
 import { getActiveOrgId } from "@/features/tenant/activeOrg";
+import { getDbUser } from "@/features/auth/getDbUser";
+import { hasOrgMembership } from "@/features/tenant/membership";
 import { createOrgAction } from "./actions";
 
 export default async function OnboardingPage() {
-	const { userId } = await auth(); // ✅ Clerk auth() is sync here
-	if (!userId) redirect("/sign-in?redirect_url=/onboarding");
+	await requireAuth("/onboarding");
 
 	const activeOrgId = await getActiveOrgId();
-	if (activeOrgId) redirect("/dashboard");
+	if (activeOrgId) {
+		const dbUser = await getDbUser();
+		const hasMembership = await hasOrgMembership({
+			dbUserId: dbUser.id,
+			orgId: activeOrgId,
+		});
+		if (hasMembership) redirect("/dashboard");
+		redirect("/onboarding/recover-active-org");
+	}
 
 	return (
 		<main className="mx-auto max-w-md p-6">

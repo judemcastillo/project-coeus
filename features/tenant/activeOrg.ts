@@ -1,5 +1,4 @@
 import { cookies } from "next/headers";
-
 const ACTIVE_ORG_COOKIE = "active_org_id";
 
 export async function getActiveOrgId() {
@@ -15,4 +14,9 @@ export async function setActiveOrgId(orgId: string) {
 		secure: process.env.NODE_ENV === "production",
 		path: "/",
 	});
+}
+
+export async function clearActiveOrgId() {
+	const store = await cookies();
+	store.delete(ACTIVE_ORG_COOKIE);
 }

@@ -1,27 +1,51 @@
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { getDbUser } from "./getDbUser";
+import { requireAuth } from "./requireAuth";
 import { getActiveOrgId } from "./tenant";
+import { redirect } from "next/navigation";
 
-export type Ctx = {
-	userId: string;
+export type TenantCtx = {
+	dbUserId: string;
 	orgId: string;
 	role: "OWNER" | "ADMIN" | "MEMBER";
+	org: {
+		name: string;
+		plan: "FREE" | "PRO";
+	};
 };
 
-export async function getCtx(): Promise<Ctx> {
-	const session = await auth();
-	const userId = session?.user?.id;
-	if (!userId) throw new Error("UNAUTHORIZED");
+type GetTenantCtxOptions = {
+	authRedirectTo?: string;
+};
 
-	const orgId =  await getActiveOrgId();
-	if (!orgId) throw new Error("NO_ACTIVE_ORG");
+export async function getTenantCtx(
+	options?: GetTenantCtxOptions
+): Promise<TenantCtx> {
+	await requireAuth(options?.authRedirectTo ?? "/dashboard");
+	const dbUser = await getDbUser();
+	const dbUserId = dbUser.id;
+
+	const orgId = await getActiveOrgId();
+	if (!orgId) redirect("/onboarding");
 
 	const membership = await prisma.membership.findUnique({
-		where: { userId_organizationId: { userId, organizationId: orgId } },
-		select: { role: true },
+		where: { userId_organizationId: { userId: dbUserId, organizationId: orgId } },
+		select: {
+			role: true,
+			organization: { select: { name: true, plan: true } },
+		},
 	});
 
-	if (!membership) throw new Error("FORBIDDEN");
+	if (!membership) redirect("/onboarding/recover-active-org");
 
-	return { userId, orgId, role: membership.role };
+	return {
+		dbUserId,
+		orgId,
+		role: membership.role,
+		org: membership.organization,
+	};
 }
+
+// Backward-compatible alias while tenant-context naming is rolled out.
+export type Ctx = TenantCtx;
+export const getCtx = getTenantCtx;

@@ -20,6 +20,45 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Auth + Tenant Guard Flow
+
+This app uses Clerk for authentication and an `active_org_id` cookie for workspace context.
+
+### Helpers
+
+- `features/auth/requireAuth.ts`
+  - Auth-only guard for pages/actions.
+  - Redirects unauthenticated users to `/sign-in?redirect_url=...`.
+
+- `features/auth/ctx.ts` (`getTenantCtx`)
+  - Tenant guard for protected pages/actions.
+  - Resolves DB user (`getDbUser()`), active org cookie, membership, and role.
+  - Returns tenant context: `dbUserId`, `orgId`, `role`, and `org` (`name`, `plan`).
+
+- `features/tenant/activeOrg.ts`
+  - Reads/sets/clears the `active_org_id` cookie.
+
+### Redirect Rules
+
+- Not signed in -> `/sign-in?redirect_url=...`
+- Signed in + no active org cookie -> `/onboarding`
+- Signed in + stale/invalid active org cookie -> `/onboarding/recover-active-org` (clears cookie, then redirects to `/onboarding`)
+- Signed in + valid membership -> protected page renders
+
+### Current Protected Routes
+
+- `app/onboarding/page.tsx`: uses `requireAuth("/onboarding")`
+- `app/dashboard/page.tsx`: uses `getTenantCtx()`
+
+### Server Action Pattern (current)
+
+- `app/onboarding/actions.ts`
+  - `requireAuth(...)` first
+  - validate input
+  - run business logic (`createOrgForUser`)
+  - set cookie (`setActiveOrgId`)
+  - redirect
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
