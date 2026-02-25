@@ -33,6 +33,7 @@ npm run test:e2e
 
 - `tests/integration/create-org-for-user.test.ts` is a real Prisma/Postgres integration test.
 - `tests/integration/get-tenant-ctx.test.ts` is a DB-backed integration test with mocked Clerk/Next request APIs.
+- `tests/integration/project-service.test.ts` verifies tenant isolation, soft delete behavior, and audit logs for projects.
 - It is **disabled by default** to avoid accidental writes to your dev DB.
 
 Run it explicitly:

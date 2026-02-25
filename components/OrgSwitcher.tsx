@@ -30,13 +30,19 @@ export default function OrgSwitcher({
 	activeMembership: OrgSwitcherProps["activeMembership"];
 }) {
 	return (
-		<details className="relative">
-			<summary className="list-none cursor-pointer rounded-md border px-3 py-2 text-sm select-none">
+		<details className="relative" data-testid="org-switcher">
+			<summary
+				data-testid="org-switcher-trigger"
+				className="list-none cursor-pointer rounded-md border px-3 py-2 text-sm select-none"
+			>
 				{activeMembership
 					? `Org: ${activeMembership.organization.name}`
 					: "Switch org"}
 			</summary>
-			<div className="absolute right-0 mt-2 w-72 rounded-lg border bg-background p-2 shadow-lg">
+			<div
+				data-testid="org-switcher-menu"
+				className="absolute right-0 mt-2 w-72 rounded-lg border bg-background p-2 shadow-lg"
+			>
 				<div className="px-2 pb-2 text-xs text-muted-foreground">
 					Switch workspace
 				</div>
@@ -53,6 +59,7 @@ export default function OrgSwitcher({
 								/>
 								<button
 									type="submit"
+									data-testid={`org-switch-option-${membership.organizationId}`}
 									className={`w-full rounded-md border px-3 py-2 text-left text-sm cursor-pointer ${
 										isActive ? "bg-muted" : "hover:bg-foreground/2"
 									}`}

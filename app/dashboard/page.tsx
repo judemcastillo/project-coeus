@@ -1,4 +1,5 @@
 import { getTenantCtx } from "@/features/auth/ctx";
+import Link from "next/link";
 
 export default async function DashboardPage() {
 	const ctx = await getTenantCtx();
@@ -10,6 +11,12 @@ export default async function DashboardPage() {
 				<div>Workspace: {ctx.org.name}</div>
 				<div>Plan: {ctx.org.plan}</div>
 				<div>Your role: {ctx.role}</div>
+				<Link
+					href="/projects"
+					className="mt-3 inline-block rounded-md border px-3 py-2 text-sm"
+				>
+					Open projects
+				</Link>
 			</div>
 		</main>
 	);

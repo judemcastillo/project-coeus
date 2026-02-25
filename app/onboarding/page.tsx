@@ -2,15 +2,18 @@ import { redirect } from "next/navigation";
 import { requireAuth } from "@/features/auth/requireAuth";
 import { getActiveOrgId } from "@/features/tenant/activeOrg";
 import { getDbUser } from "@/features/auth/getDbUser";
-import { hasOrgMembership } from "@/features/tenant/membership";
+import {
+	hasOrgMembership,
+	listOrgMembershipsForUser,
+} from "@/features/tenant/membership";
 import { createOrgAction } from "./actions";
 
 export default async function OnboardingPage() {
 	await requireAuth("/onboarding");
+	const dbUser = await getDbUser();
 
 	const activeOrgId = await getActiveOrgId();
 	if (activeOrgId) {
-		const dbUser = await getDbUser();
 		const hasMembership = await hasOrgMembership({
 			dbUserId: dbUser.id,
 			orgId: activeOrgId,
@@ -18,6 +21,9 @@ export default async function OnboardingPage() {
 		if (hasMembership) redirect("/dashboard");
 		redirect("/onboarding/recover-active-org");
 	}
+
+	const memberships = await listOrgMembershipsForUser({ dbUserId: dbUser.id });
+	if (memberships.length > 0) redirect("/org/select");
 
 	return (
 		<main className="mx-auto max-w-md p-6">
