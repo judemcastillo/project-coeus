@@ -9,6 +9,7 @@ import {
 export default async function ProjectsPage() {
 	const ctx = await getTenantCtx({ authRedirectTo: "/projects" });
 	const projects = await listProjects({ orgId: ctx.orgId });
+	const canManageProjects = ctx.role === "OWNER" || ctx.role === "ADMIN";
 
 	return (
 		<main className="p-6">
@@ -26,31 +27,38 @@ export default async function ProjectsPage() {
 
 			<section className="mt-6 rounded-lg border p-4">
 				<h2 className="font-medium">Create project</h2>
-				<form
-					action={createProjectAction}
-					className="mt-3 space-y-3"
-					data-testid="project-create-form"
-				>
-					<input
-						name="name"
-						placeholder="Project name"
-						data-testid="project-create-name"
-						className="w-full rounded-md border px-3 py-2"
-						required
-					/>
-					<textarea
-						name="description"
-						placeholder="Description (optional)"
-						data-testid="project-create-description"
-						className="w-full rounded-md border px-3 py-2 min-h-24"
-					/>
-					<button
-						className="rounded-md border px-3 py-2 text-sm"
-						data-testid="project-create-submit"
+				{canManageProjects ? (
+					<form
+						action={createProjectAction}
+						className="mt-3 space-y-3"
+						data-testid="project-create-form"
 					>
-						Create project
-					</button>
-				</form>
+						<input
+							name="name"
+							placeholder="Project name"
+							data-testid="project-create-name"
+							className="w-full rounded-md border px-3 py-2"
+							required
+						/>
+						<textarea
+							name="description"
+							placeholder="Description (optional)"
+							data-testid="project-create-description"
+							className="w-full rounded-md border px-3 py-2 min-h-24"
+						/>
+						<button
+							className="rounded-md border px-3 py-2 text-sm"
+							data-testid="project-create-submit"
+						>
+							Create project
+						</button>
+					</form>
+				) : (
+					<p className="mt-3 text-sm text-muted-foreground">
+						You have view-only access in this workspace. Ask an admin or owner to
+						create projects.
+					</p>
+				)}
 			</section>
 
 			<section className="mt-6 rounded-lg border p-4">
@@ -80,36 +88,45 @@ export default async function ProjectsPage() {
 										</p>
 									)}
 									<div className="mt-2 text-xs text-muted-foreground">
-										Updated {project.updatedAt.toLocaleString()}
+										Created: {project.createdAt.toLocaleString()}
 									</div>
-									<form action={updateProjectAction} className="mt-3 space-y-2">
-										<input
-											type="hidden"
-											name="projectId"
-											value={project.id}
-										/>
-										<input
-											name="name"
-											defaultValue={project.name}
-											className="w-full rounded-md border px-3 py-2 text-sm"
-											required
-										/>
-										<textarea
-											name="description"
-											defaultValue={project.description ?? ""}
-											className="w-full rounded-md border px-3 py-2 text-sm min-h-20"
-										/>
+									<div className="mt-2 text-xs text-muted-foreground">
+										Updated: {project.updatedAt.toLocaleString()}
+									</div>
+									{canManageProjects ? (
+										<form action={updateProjectAction} className="mt-3 space-y-2">
+											<input
+												type="hidden"
+												name="projectId"
+												value={project.id}
+											/>
+											<input
+												name="name"
+												defaultValue={project.name}
+												className="w-full rounded-md border px-3 py-2 text-sm"
+												required
+											/>
+											<textarea
+												name="description"
+												defaultValue={project.description ?? ""}
+												className="w-full rounded-md border px-3 py-2 text-sm min-h-20"
+											/>
+											<button className="rounded-md border px-3 py-2 text-sm">
+												Save changes
+											</button>
+										</form>
+									) : null}
+								</div>
+								{canManageProjects ? (
+									<form action={deleteProjectAction}>
+										<input type="hidden" name="projectId" value={project.id} />
 										<button className="rounded-md border px-3 py-2 text-sm">
-											Save changes
+											Delete
 										</button>
 									</form>
-								</div>
-								<form action={deleteProjectAction}>
-									<input type="hidden" name="projectId" value={project.id} />
-									<button className="rounded-md border px-3 py-2 text-sm">
-										Delete
-									</button>
-								</form>
+								) : (
+									<div className="text-sm text-muted-foreground">View only</div>
+								)}
 							</div>
 						))}
 					</div>

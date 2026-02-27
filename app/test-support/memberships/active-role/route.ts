@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
-import { createProject } from "@/features/project/project.service";
 import { prisma } from "@/lib/prisma";
 import { getActiveOrgId } from "@/features/tenant/activeOrg";
-import { hasOrgMembership } from "@/features/tenant/membership";
 import {
 	getE2EBypassDbUserId,
 	isE2EBypassEnabled,
@@ -10,6 +8,10 @@ import {
 
 function testRouteDisabled() {
 	return NextResponse.json({ error: "Not found" }, { status: 404 });
+}
+
+function isValidRole(role: unknown): role is "OWNER" | "ADMIN" | "MEMBER" {
+	return role === "OWNER" || role === "ADMIN" || role === "MEMBER";
 }
 
 export async function POST(request: Request) {
@@ -25,9 +27,11 @@ export async function POST(request: Request) {
 		return NextResponse.json({ error: "No active org" }, { status: 400 });
 	}
 
-	const allowed = await hasOrgMembership({ dbUserId, orgId });
-	if (!allowed) {
-		return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+	const body = (await request.json().catch(() => ({}))) as {
+		role?: unknown;
+	};
+	if (!isValidRole(body.role)) {
+		return NextResponse.json({ error: "Invalid role" }, { status: 400 });
 	}
 
 	const membership = await prisma.membership.findUnique({
@@ -37,28 +41,16 @@ export async function POST(request: Request) {
 				organizationId: orgId,
 			},
 		},
-		select: { role: true },
+		select: { id: true },
 	});
 	if (!membership) {
-		return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-	}
-	if (membership.role === "MEMBER") {
-		return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+		return NextResponse.json({ error: "Membership not found" }, { status: 404 });
 	}
 
-	const body = (await request.json().catch(() => ({}))) as {
-		name?: string;
-		description?: string;
-	};
-	const name = body.name?.trim();
-	if (!name) {
-		return NextResponse.json({ error: "Name is required" }, { status: 400 });
-	}
+	await prisma.membership.update({
+		where: { id: membership.id },
+		data: { role: body.role },
+	});
 
-	const project = await createProject(
-		{ dbUserId, orgId, role: membership.role },
-		{ name, description: body.description }
-	);
-
-	return NextResponse.json({ ok: true, project });
+	return NextResponse.json({ ok: true, role: body.role });
 }

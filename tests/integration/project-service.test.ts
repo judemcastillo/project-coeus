@@ -32,7 +32,10 @@ describeIntegration("project.service (integration)", () => {
 		createdUserIds.clear();
 	});
 
-	async function seedTenant(label: string) {
+	async function seedTenant(
+		label: string,
+		role: "OWNER" | "ADMIN" | "MEMBER" = "OWNER"
+	) {
 		const nonce = randomUUID();
 		const user = await prisma.user.create({
 			data: {
@@ -47,7 +50,7 @@ describeIntegration("project.service (integration)", () => {
 		const org = await prisma.organization.create({
 			data: {
 				name: `${label} org`,
-				memberships: { create: { userId: user.id, role: "OWNER" } },
+				memberships: { create: { userId: user.id, role } },
 				usage: {
 					create: {
 						periodStart: new Date("2026-02-01T00:00:00.000Z"),
@@ -62,6 +65,38 @@ describeIntegration("project.service (integration)", () => {
 		return {
 			dbUserId: user.id,
 			orgId: org.id,
+			role,
+		};
+	}
+
+	async function addUserMembership(
+		params: {
+			orgId: string;
+			label: string;
+			role: "OWNER" | "ADMIN" | "MEMBER";
+		}
+	) {
+		const nonce = randomUUID();
+		const user = await prisma.user.create({
+			data: {
+				clerkUserId: `clerk_${params.label}_${nonce}`,
+				email: `${params.label}-${nonce}@example.test`,
+				name: `${params.label} user`,
+				memberships: {
+					create: {
+						organizationId: params.orgId,
+						role: params.role,
+					},
+				},
+			},
+			select: { id: true },
+		});
+		createdUserIds.add(user.id);
+
+		return {
+			dbUserId: user.id,
+			orgId: params.orgId,
+			role: params.role,
 		};
 	}
 
@@ -149,5 +184,46 @@ describeIntegration("project.service (integration)", () => {
 		await expect(
 			service.softDeleteProject(tenantB, { projectId: project.id })
 		).rejects.toThrow("NOT_FOUND");
+	});
+
+	it("enforces RBAC for project mutations (MEMBER forbidden, ADMIN allowed)", async () => {
+		const owner = await seedTenant("rbac-owner", "OWNER");
+		const member = await addUserMembership({
+			orgId: owner.orgId,
+			label: "rbac-member",
+			role: "MEMBER",
+		});
+
+		const ownerProject = await service.createProject(owner, {
+			name: "Owner Created",
+		});
+
+		await expect(
+			service.createProject(member, { name: "Member Create" })
+		).rejects.toThrow("FORBIDDEN");
+		await expect(
+			service.updateProject(member, {
+				projectId: ownerProject.id,
+				name: "Member Update",
+			})
+		).rejects.toThrow("FORBIDDEN");
+		await expect(
+			service.softDeleteProject(member, { projectId: ownerProject.id })
+		).rejects.toThrow("FORBIDDEN");
+
+		const admin = await seedTenant("rbac-admin", "ADMIN");
+		const adminProject = await service.createProject(admin, {
+			name: "Admin Created",
+		});
+
+		const updatedAdminProject = await service.updateProject(admin, {
+			projectId: adminProject.id,
+			name: "Admin Updated",
+		});
+		expect(updatedAdminProject.name).toBe("Admin Updated");
+
+		await expect(
+			service.softDeleteProject(admin, { projectId: adminProject.id })
+		).resolves.toBeUndefined();
 	});
 });

@@ -1,9 +1,8 @@
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/features/auth/rbac";
+import type { TenantCtx } from "@/features/auth/ctx";
 
-type ProjectActorCtx = {
-	orgId: string;
-	dbUserId: string;
-};
+type ProjectActorCtx = Pick<TenantCtx, "orgId" | "dbUserId" | "role">;
 
 export async function listProjects(params: { orgId: string }) {
 	return prisma.project.findMany({
@@ -26,6 +25,8 @@ export async function createProject(
 	ctx: ProjectActorCtx,
 	input: { name: string; description?: string | null }
 ) {
+	requireAdmin(ctx);
+
 	const name = input.name.trim();
 	const description = input.description?.trim() || null;
 
@@ -62,6 +63,8 @@ export async function updateProject(
 	ctx: ProjectActorCtx,
 	input: { projectId: string; name: string; description?: string | null }
 ) {
+	requireAdmin(ctx);
+
 	const name = input.name.trim();
 	const description = input.description?.trim() || null;
 
@@ -105,6 +108,8 @@ export async function softDeleteProject(
 	ctx: ProjectActorCtx,
 	input: { projectId: string }
 ) {
+	requireAdmin(ctx);
+
 	return prisma.$transaction(async (tx) => {
 		const existing = await tx.project.findFirst({
 			where: {
