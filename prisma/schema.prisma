@@ -45,6 +45,18 @@ enum Plan {
   PRO
 }
 
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  INPROGRESS
+  DONE
+  ONHOLD
+}
+
 model Organization {
   id        String   @id @default(cuid())
   name      String
@@ -54,6 +66,7 @@ model Organization {
 
   memberships Membership[]
   projects    Project[]
+  tasks       Task[]
   usage       Usage?
   aiRequests  AIRequest[]
   auditLogs   AuditLog[]
@@ -86,8 +99,28 @@ model Project {
   deletedAt      DateTime?
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tasks        Task[]
 
   @@index([organizationId, createdAt])
+  @@index([deletedAt])
+}
+
+model Task {
+  id             String       @id @default(cuid())
+  organizationId String
+  projectId      String
+  title          String
+  description    String?
+  priority       TaskPriority?
+  status         TaskStatus   @default(INPROGRESS)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  deletedAt      DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, projectId, createdAt])
   @@index([deletedAt])
 }
 

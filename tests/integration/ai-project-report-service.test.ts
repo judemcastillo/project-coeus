@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 const runIntegration = process.env.RUN_INTEGRATION_TESTS === "1";
 const describeIntegration = runIntegration ? describe : describe.skip;
@@ -8,6 +8,7 @@ describeIntegration("project-report AI service (integration)", () => {
 	let prisma: (typeof import("@/lib/prisma"))["prisma"];
 	let service: typeof import("@/features/ai/project-report.service");
 	let usageService: typeof import("@/features/usage/usage.service");
+	let previousBypass: string | undefined;
 	const createdOrgIds = new Set<string>();
 	const createdUserIds = new Set<string>();
 
@@ -20,6 +21,16 @@ describeIntegration("project-report AI service (integration)", () => {
 		({ prisma } = await import("@/lib/prisma"));
 		service = await import("@/features/ai/project-report.service");
 		usageService = await import("@/features/usage/usage.service");
+		previousBypass = process.env.ENABLE_E2E_TEST_BYPASS;
+		process.env.ENABLE_E2E_TEST_BYPASS = "1";
+	});
+
+	afterAll(() => {
+		if (previousBypass === undefined) {
+			delete process.env.ENABLE_E2E_TEST_BYPASS;
+			return;
+		}
+		process.env.ENABLE_E2E_TEST_BYPASS = previousBypass;
 	});
 
 	afterEach(async () => {
@@ -133,10 +144,21 @@ describeIntegration("project-report AI service (integration)", () => {
 	it("blocks generation at the usage limit and does not create AIRequest rows", async () => {
 		const tenant = await seedTenant("ADMIN");
 		const freeLimit = usageService.getAiRequestLimitForPlan("FREE");
+		const now = new Date();
+		const periodStart = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)
+		);
+		const periodEnd = new Date(
+			Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)
+		);
 
 		await prisma.usage.update({
 			where: { organizationId: tenant.ctx.orgId },
-			data: { aiRequestsCount: freeLimit },
+			data: {
+				periodStart,
+				periodEnd,
+				aiRequestsCount: freeLimit,
+			},
 		});
 
 		await expect(

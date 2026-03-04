@@ -107,9 +107,11 @@ describeIntegration("usage.service (integration)", () => {
 			data: { aiRequestsCount: freeLimit },
 		});
 
-		await expect(usageService.assertAiRequestWithinLimit(tenant.ctx)).rejects.toThrow(
-			"USAGE_LIMIT_EXCEEDED"
-		);
+		await expect(
+			usageService.assertAiRequestWithinLimit(tenant.ctx, {
+				now: new Date("2026-02-10T00:00:00.000Z"),
+			})
+		).rejects.toThrow("USAGE_LIMIT_EXCEEDED");
 	});
 
 	it("increments usage counters transactionally and resets stale periods first", async () => {

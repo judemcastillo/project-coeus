@@ -7,6 +7,7 @@ const state = vi.hoisted(() => ({
 	updateProject: vi.fn(),
 	softDeleteProject: vi.fn(),
 	revalidatePath: vi.fn(),
+	redirects: [] as string[],
 }));
 
 vi.mock("@/features/auth/ctx", () => ({
@@ -21,6 +22,13 @@ vi.mock("@/features/project/project.service", () => ({
 
 vi.mock("next/cache", () => ({
 	revalidatePath: state.revalidatePath,
+}));
+
+vi.mock("next/navigation", () => ({
+	redirect: (to: string) => {
+		state.redirects.push(to);
+		throw new Error(`REDIRECT:${to}`);
+	},
 }));
 
 function makeCtx(role: TenantCtx["role"]): TenantCtx {
@@ -43,6 +51,7 @@ describe("project actions RBAC", () => {
 		state.updateProject.mockResolvedValue({ id: "project_1" });
 		state.softDeleteProject.mockResolvedValue(undefined);
 		state.revalidatePath.mockReset();
+		state.redirects = [];
 	});
 
 	it("blocks MEMBER from create/update/delete and skips service mutations", async () => {
@@ -79,7 +88,9 @@ describe("project actions RBAC", () => {
 		formData.set("name", "  Project Alpha  ");
 		formData.set("description", "  Initial scope  ");
 
-		await expect(createProjectAction(formData)).resolves.toBeUndefined();
+		await expect(createProjectAction(formData)).rejects.toThrow(
+			"REDIRECT:/projects?result=created"
+		);
 
 		expect(state.getTenantCtx).toHaveBeenCalledWith({ authRedirectTo: "/projects" });
 		expect(state.createProject).toHaveBeenCalledWith(makeCtx("ADMIN"), {
@@ -87,5 +98,33 @@ describe("project actions RBAC", () => {
 			description: "Initial scope",
 		});
 		expect(state.revalidatePath).toHaveBeenCalledWith("/projects");
+		expect(state.redirects).toContain("/projects?result=created");
+	});
+
+	it("maps service and validation errors into route query params", async () => {
+		const { createProjectAction, updateProjectAction, deleteProjectAction } = await import(
+			"@/app/projects/actions"
+		);
+		state.updateProject.mockRejectedValueOnce(new Error("NOT_FOUND"));
+
+		const updateForm = new FormData();
+		updateForm.set("projectId", "project_1");
+		updateForm.set("name", "Project Beta");
+		await expect(updateProjectAction(updateForm)).rejects.toThrow(
+			"REDIRECT:/projects?error=project-not-found"
+		);
+
+		state.softDeleteProject.mockRejectedValueOnce(new Error("NOT_FOUND"));
+		const deleteForm = new FormData();
+		deleteForm.set("projectId", "project_1");
+		await expect(deleteProjectAction(deleteForm)).rejects.toThrow(
+			"REDIRECT:/projects?error=project-not-found"
+		);
+
+		const invalidForm = new FormData();
+		invalidForm.set("name", "x");
+		await expect(createProjectAction(invalidForm)).rejects.toThrow(
+			"REDIRECT:/projects?error=invalid-input"
+		);
 	});
 });

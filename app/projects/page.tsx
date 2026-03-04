@@ -6,9 +6,58 @@ import {
 	updateProjectAction,
 } from "./actions";
 
-export default async function ProjectsPage() {
+type ProjectsPageProps = {
+	searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function getSingleParam(value: string | string[] | undefined) {
+	return Array.isArray(value) ? value[0] : value;
+}
+
+function getStatusMessage(params: Record<string, string | string[] | undefined>) {
+	const result = getSingleParam(params.result);
+	const error = getSingleParam(params.error);
+
+	if (result === "created") {
+		return {
+			tone: "success" as const,
+			text: "Project created.",
+		};
+	}
+	if (result === "updated") {
+		return {
+			tone: "success" as const,
+			text: "Project updated.",
+		};
+	}
+	if (result === "deleted") {
+		return {
+			tone: "success" as const,
+			text: "Project deleted.",
+		};
+	}
+	if (error === "invalid-input") {
+		return {
+			tone: "warning" as const,
+			text: "Could not save project: please review the form values.",
+		};
+	}
+	if (error === "project-not-found") {
+		return {
+			tone: "warning" as const,
+			text: "Project was not found (it may have already been deleted).",
+		};
+	}
+	return null;
+}
+
+export default async function ProjectsPage({ searchParams }: ProjectsPageProps) {
 	const ctx = await getTenantCtx({ authRedirectTo: "/projects" });
-	const projects = await listProjects({ orgId: ctx.orgId });
+	const [projects, params] = await Promise.all([
+		listProjects({ orgId: ctx.orgId }),
+		searchParams ?? Promise.resolve({}),
+	]);
+	const status = getStatusMessage(params);
 	const canManageProjects = ctx.role === "OWNER" || ctx.role === "ADMIN";
 
 	return (
@@ -24,6 +73,19 @@ export default async function ProjectsPage() {
 					Back to dashboard
 				</a>
 			</div>
+
+			{status ? (
+				<p
+					className={
+						status.tone === "success"
+							? "mt-4 rounded-md border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-800"
+							: "mt-4 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800"
+					}
+					data-testid="projects-status"
+				>
+					{status.text}
+				</p>
+			) : null}
 
 			<section className="mt-6 rounded-lg border p-4">
 				<h2 className="font-medium">Create project</h2>
