@@ -24,6 +24,9 @@ model User {
   memberships Membership[]
   aiRequests   AIRequest[]
   auditLogs    AuditLog[] @relation("ActorAuditLogs")
+  createdTasks Task[]      @relation("TaskCreator")
+  assignedTasks Task[]     @relation("TaskAssignee")
+  taskComments TaskComment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -67,6 +70,7 @@ model Organization {
   memberships Membership[]
   projects    Project[]
   tasks       Task[]
+  taskComments TaskComment[]
   usage       Usage?
   aiRequests  AIRequest[]
   auditLogs   AuditLog[]
@@ -109,6 +113,9 @@ model Task {
   id             String       @id @default(cuid())
   organizationId String
   projectId      String
+  creatorUserId  String?
+  assigneeUserId String?
+  parentTaskId   String?
   title          String
   description    String?
   priority       TaskPriority?
@@ -119,9 +126,33 @@ model Task {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   project      Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator      User?        @relation("TaskCreator", fields: [creatorUserId], references: [id], onDelete: SetNull)
+  assignee     User?        @relation("TaskAssignee", fields: [assigneeUserId], references: [id], onDelete: SetNull)
+  parentTask   Task?        @relation("TaskSubtasks", fields: [parentTaskId], references: [id], onDelete: Cascade)
+  subtasks     Task[]       @relation("TaskSubtasks")
+  comments     TaskComment[]
 
   @@index([organizationId, projectId, createdAt])
   @@index([deletedAt])
+  @@index([assigneeUserId])
+  @@index([parentTaskId])
+}
+
+model TaskComment {
+  id             String   @id @default(cuid())
+  organizationId String
+  taskId         String
+  userId         String
+  content        String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  task         Task         @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, taskId, createdAt])
+  @@index([userId, createdAt])
 }
 
 model Usage {

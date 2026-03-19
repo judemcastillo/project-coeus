@@ -46,7 +46,7 @@ describe("dashboard deleteOrgAction", () => {
 	});
 
 	it("allows OWNER to delete org then clears active org and redirects to auto selector", async () => {
-		const { deleteOrgAction } = await import("@/app/dashboard/actions");
+		const { deleteOrgAction } = await import("@/app/(app-shell)/dashboard/actions");
 		const formData = new FormData();
 		formData.set("confirmName", "Acme");
 
@@ -62,7 +62,7 @@ describe("dashboard deleteOrgAction", () => {
 	});
 
 	it("blocks MEMBER from deleting org", async () => {
-		const { deleteOrgAction } = await import("@/app/dashboard/actions");
+		const { deleteOrgAction } = await import("@/app/(app-shell)/dashboard/actions");
 		state.getTenantCtx.mockResolvedValue(makeCtx("MEMBER"));
 
 		const formData = new FormData();
@@ -74,7 +74,7 @@ describe("dashboard deleteOrgAction", () => {
 	});
 
 	it("maps validation and service errors to dashboard query params", async () => {
-		const { deleteOrgAction } = await import("@/app/dashboard/actions");
+		const { deleteOrgAction } = await import("@/app/(app-shell)/dashboard/actions");
 
 		const invalid = new FormData();
 		await expect(deleteOrgAction(invalid)).rejects.toThrow(

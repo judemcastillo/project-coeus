@@ -50,7 +50,7 @@ describe("member actions", () => {
 	});
 
 	it("blocks ADMIN and MEMBER from add/change role actions", async () => {
-		const actions = await import("@/app/members/actions");
+		const actions = await import("@/app/(app-shell)/members/actions");
 
 		for (const role of ["ADMIN", "MEMBER"] as const) {
 			state.getTenantCtx.mockResolvedValueOnce(makeCtx(role));
@@ -74,7 +74,7 @@ describe("member actions", () => {
 
 	it("allows OWNER and passes validated inputs to service", async () => {
 		const { addMemberAction, changeMemberRoleAction } = await import(
-			"@/app/members/actions"
+			"@/app/(app-shell)/members/actions"
 		);
 
 		const addForm = new FormData();
@@ -100,7 +100,7 @@ describe("member actions", () => {
 	});
 
 	it("redirects add-member known errors to user-facing messages", async () => {
-		const { addMemberAction } = await import("@/app/members/actions");
+		const { addMemberAction } = await import("@/app/(app-shell)/members/actions");
 		state.addMemberToOrgByEmail.mockRejectedValueOnce(new Error("USER_NOT_FOUND"));
 
 		const addForm = new FormData();
@@ -115,7 +115,7 @@ describe("member actions", () => {
 	});
 
 	it("redirects role-change known errors to user-facing messages", async () => {
-		const { changeMemberRoleAction } = await import("@/app/members/actions");
+		const { changeMemberRoleAction } = await import("@/app/(app-shell)/members/actions");
 		state.changeMemberRole.mockRejectedValueOnce(new Error("LAST_OWNER"));
 
 		const form = new FormData();

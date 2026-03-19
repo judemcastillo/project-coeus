@@ -5,6 +5,7 @@ const state = vi.hoisted(() => ({
 	getTenantCtx: vi.fn(),
 	createTask: vi.fn(),
 	updateTask: vi.fn(),
+	addTaskComment: vi.fn(),
 	softDeleteTask: vi.fn(),
 	revalidatePath: vi.fn(),
 	redirects: [] as string[],
@@ -17,6 +18,7 @@ vi.mock("@/features/auth/ctx", () => ({
 vi.mock("@/features/task/task.service", () => ({
 	createTask: state.createTask,
 	updateTask: state.updateTask,
+	addTaskComment: state.addTaskComment,
 	softDeleteTask: state.softDeleteTask,
 }));
 
@@ -46,13 +48,14 @@ describe("task actions", () => {
 		state.getTenantCtx.mockResolvedValue(makeCtx("ADMIN"));
 		state.createTask.mockResolvedValue({ id: "task_1" });
 		state.updateTask.mockResolvedValue({ id: "task_1" });
+		state.addTaskComment.mockResolvedValue({ id: "comment_1" });
 		state.softDeleteTask.mockResolvedValue(undefined);
 		state.revalidatePath.mockReset();
 		state.redirects = [];
 	});
 
 	it("blocks MEMBER from create/update/delete and skips service mutations", async () => {
-		const actions = await import("@/app/tasks/actions");
+		const actions = await import("@/app/(app-shell)/tasks/actions");
 		state.getTenantCtx.mockResolvedValue(makeCtx("MEMBER"));
 
 		const createForm = new FormData();
@@ -75,7 +78,7 @@ describe("task actions", () => {
 	});
 
 	it("allows ADMIN to create task and maps NONE priority to null", async () => {
-		const { createTaskAction } = await import("@/app/tasks/actions");
+		const { createTaskAction } = await import("@/app/(app-shell)/tasks/actions");
 
 		const formData = new FormData();
 		formData.set("projectId", "project_1");
@@ -94,13 +97,15 @@ describe("task actions", () => {
 			description: "Optional description",
 			priority: null,
 			status: "ONHOLD",
+			assigneeUserId: null,
+			parentTaskId: null,
 		});
 		expect(state.revalidatePath).toHaveBeenCalledWith("/tasks");
 		expect(state.redirects).toContain("/tasks?result=created");
 	});
 
 	it("allows ADMIN to update and delete tasks", async () => {
-		const actions = await import("@/app/tasks/actions");
+		const actions = await import("@/app/(app-shell)/tasks/actions");
 
 		const updateForm = new FormData();
 		updateForm.set("taskId", "task_1");
@@ -117,6 +122,7 @@ describe("task actions", () => {
 			description: "Updated",
 			priority: "HIGH",
 			status: "DONE",
+			assigneeUserId: null,
 		});
 
 		const deleteForm = new FormData();
@@ -133,7 +139,7 @@ describe("task actions", () => {
 	});
 
 	it("maps service and validation failures into route-level errors", async () => {
-		const actions = await import("@/app/tasks/actions");
+		const actions = await import("@/app/(app-shell)/tasks/actions");
 
 		state.createTask.mockRejectedValueOnce(new Error("NOT_FOUND"));
 		const createForm = new FormData();
@@ -151,11 +157,54 @@ describe("task actions", () => {
 			"REDIRECT:/tasks?error=task-not-found"
 		);
 
+		state.createTask.mockRejectedValueOnce(new Error("ASSIGNEE_NOT_FOUND"));
+		const createAssigneeForm = new FormData();
+		createAssigneeForm.set("projectId", "project_1");
+		createAssigneeForm.set("title", "Task C");
+		createAssigneeForm.set("assigneeUserId", "missing-user");
+		await expect(actions.createTaskAction(createAssigneeForm)).rejects.toThrow(
+			"REDIRECT:/tasks?error=assignee-not-found"
+		);
+
+		state.createTask.mockRejectedValueOnce(new Error("PARENT_TASK_NOT_FOUND"));
+		const createSubtaskForm = new FormData();
+		createSubtaskForm.set("projectId", "project_1");
+		createSubtaskForm.set("parentTaskId", "missing-task");
+		createSubtaskForm.set("title", "Task D");
+		await expect(actions.createSubtaskAction(createSubtaskForm)).rejects.toThrow(
+			"REDIRECT:/tasks?error=parent-task-not-found"
+		);
+
 		const invalidCreateForm = new FormData();
 		invalidCreateForm.set("projectId", "project_1");
 		invalidCreateForm.set("title", "x");
 		await expect(actions.createTaskAction(invalidCreateForm)).rejects.toThrow(
 			"REDIRECT:/tasks?error=invalid-input"
 		);
+
+		const invalidCommentForm = new FormData();
+		invalidCommentForm.set("taskId", "task_1");
+		invalidCommentForm.set("content", "   ");
+		await expect(actions.addTaskCommentAction(invalidCommentForm)).rejects.toThrow(
+			"REDIRECT:/tasks?error=invalid-comment"
+		);
+	});
+
+	it("allows any member to add task comments", async () => {
+		const { addTaskCommentAction } = await import("@/app/(app-shell)/tasks/actions");
+		state.getTenantCtx.mockResolvedValue(makeCtx("MEMBER"));
+
+		const commentForm = new FormData();
+		commentForm.set("taskId", "task_1");
+		commentForm.set("content", "  Looks good  ");
+
+		await expect(addTaskCommentAction(commentForm)).rejects.toThrow(
+			"REDIRECT:/tasks?result=commented"
+		);
+		expect(state.addTaskComment).toHaveBeenCalledWith(makeCtx("MEMBER"), {
+			taskId: "task_1",
+			content: "Looks good",
+		});
+		expect(state.revalidatePath).toHaveBeenCalledWith("/tasks");
 	});
 });

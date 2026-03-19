@@ -46,7 +46,7 @@ describe("generateProjectReportAction", () => {
 
 	it("blocks MEMBER before invoking AI report service", async () => {
 		const { generateProjectReportAction } = await import(
-			"@/app/ai/project-report/actions"
+			"@/app/(app-shell)/ai/project-report/actions"
 		);
 		state.getTenantCtx.mockResolvedValue(makeCtx("MEMBER"));
 
@@ -59,7 +59,7 @@ describe("generateProjectReportAction", () => {
 
 	it("generates report, revalidates pages, and redirects on success", async () => {
 		const { generateProjectReportAction } = await import(
-			"@/app/ai/project-report/actions"
+			"@/app/(app-shell)/ai/project-report/actions"
 		);
 
 		const form = new FormData();
@@ -81,7 +81,7 @@ describe("generateProjectReportAction", () => {
 
 	it("redirects usage-limit failures to a user-facing message", async () => {
 		const { generateProjectReportAction } = await import(
-			"@/app/ai/project-report/actions"
+			"@/app/(app-shell)/ai/project-report/actions"
 		);
 		state.generateProjectStatusReport.mockRejectedValueOnce(
 			new Error("USAGE_LIMIT_EXCEEDED")
@@ -99,7 +99,7 @@ describe("generateProjectReportAction", () => {
 
 	it("redirects provider failures to a user-facing message", async () => {
 		const { generateProjectReportAction } = await import(
-			"@/app/ai/project-report/actions"
+			"@/app/(app-shell)/ai/project-report/actions"
 		);
 		state.generateProjectStatusReport.mockRejectedValueOnce(
 			new Error("AI_PROVIDER_ERROR:GEMINI_HTTP_401")

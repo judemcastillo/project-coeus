@@ -55,7 +55,7 @@ describe("project actions RBAC", () => {
 	});
 
 	it("blocks MEMBER from create/update/delete and skips service mutations", async () => {
-		const actions = await import("@/app/projects/actions");
+		const actions = await import("@/app/(app-shell)/projects/actions");
 		state.getTenantCtx.mockResolvedValue(makeCtx("MEMBER"));
 
 		const createForm = new FormData();
@@ -83,7 +83,7 @@ describe("project actions RBAC", () => {
 	});
 
 	it("allows ADMIN to create a project", async () => {
-		const { createProjectAction } = await import("@/app/projects/actions");
+		const { createProjectAction } = await import("@/app/(app-shell)/projects/actions");
 		const formData = new FormData();
 		formData.set("name", "  Project Alpha  ");
 		formData.set("description", "  Initial scope  ");
@@ -103,7 +103,7 @@ describe("project actions RBAC", () => {
 
 	it("maps service and validation errors into route query params", async () => {
 		const { createProjectAction, updateProjectAction, deleteProjectAction } = await import(
-			"@/app/projects/actions"
+			"@/app/(app-shell)/projects/actions"
 		);
 		state.updateProject.mockRejectedValueOnce(new Error("NOT_FOUND"));
 

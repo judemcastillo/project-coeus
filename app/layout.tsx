@@ -7,14 +7,8 @@ import {
 	SignedOut,
 	UserButton,
 } from "@clerk/nextjs";
-import { auth } from "@clerk/nextjs/server";
 import { Geist, Geist_Mono } from "next/font/google";
-import { getE2EBypassDbUserId } from "@/features/auth/e2eBypass";
-import { getDbUser } from "@/features/auth/getDbUser";
-import { getActiveOrgId } from "@/features/tenant/activeOrg";
-import { listOrgMembershipsForUser } from "@/features/tenant/membership";
 import "./globals.css";
-import OrgSwitcher from "@/components/OrgSwitcher";
 
 const geistSans = Geist({
 	variable: "--font-geist-sans",
@@ -36,29 +30,6 @@ export default async function RootLayout({
 }: Readonly<{
 	children: React.ReactNode;
 }>) {
-	const { userId } = await auth();
-	const bypassDbUserId = await getE2EBypassDbUserId();
-
-	let orgMemberships: Awaited<
-		ReturnType<typeof listOrgMembershipsForUser>
-	> | null = null;
-	let activeOrgId: string | null = null;
-
-	if (userId || bypassDbUserId) {
-		const dbUser = await getDbUser();
-		[orgMemberships, activeOrgId] = await Promise.all([
-			listOrgMembershipsForUser({ dbUserId: dbUser.id }),
-			getActiveOrgId(),
-		]);
-	}
-
-	const activeMembership =
-		orgMemberships?.find(
-			(membership) => membership.organizationId === activeOrgId,
-		) ??
-		orgMemberships?.[0] ??
-		null;
-
 	return (
 		<ClerkProvider
 			appearance={{
@@ -96,12 +67,6 @@ export default async function RootLayout({
 							</SignUpButton>
 						</SignedOut>
 						{/* Show the user button when the user is signed in */}
-						{orgMemberships && orgMemberships.length > 0 && (
-							<OrgSwitcher
-								orgMemberships={orgMemberships}
-								activeMembership={activeMembership}
-							/>
-						)}
 						<SignedIn>
 							<UserButton />
 						</SignedIn>

@@ -241,4 +241,40 @@ describeIntegration("task.service (integration)", () => {
 		expect(created.priority).toBeNull();
 		expect(created.status).toBe("DONE");
 	});
+
+	it("supports assignees, subtasks, comments, and activity feed", async () => {
+		const owner = await seedTenant("task-collab-owner", "OWNER");
+		const assignee = await addUserMembership({
+			orgId: owner.orgId,
+			label: "task-collab-assignee",
+			role: "MEMBER",
+		});
+
+		const parent = await service.createTask(owner, {
+			projectId: owner.projectId,
+			title: "Parent task",
+			assigneeUserId: assignee.dbUserId,
+		});
+
+		await service.createTask(owner, {
+			projectId: owner.projectId,
+			parentTaskId: parent.id,
+			title: "Subtask",
+			status: "INPROGRESS",
+		});
+
+		await service.addTaskComment(assignee, {
+			taskId: parent.id,
+			content: "I can take this one",
+		});
+
+		const tasks = await service.listTasks({ orgId: owner.orgId });
+		const hydrated = tasks.find((task) => task.id === parent.id);
+		expect(hydrated?.creator?.id).toBe(owner.dbUserId);
+		expect(hydrated?.assignee?.id).toBe(assignee.dbUserId);
+		expect(hydrated?.subtasks).toHaveLength(1);
+		expect(hydrated?.comments).toHaveLength(1);
+		expect(hydrated?.comments[0]?.content).toBe("I can take this one");
+		expect(hydrated?.activity.length).toBeGreaterThan(0);
+	});
 });

@@ -483,3 +483,96 @@ test.describe("Milestone 8 AI project report", () => {
 		await page.context().request.post("/test-support/logout");
 	});
 });
+
+test.describe("Milestone 9 task collaboration", () => {
+	test("owner can assign tasks, add subtasks/comments, and see activity", async ({
+		page,
+	}) => {
+		test.skip(
+			process.env.ENABLE_E2E_TEST_BYPASS !== "1",
+			"Set ENABLE_E2E_TEST_BYPASS=1 to enable test bypass routes"
+		);
+
+		test.setTimeout(120_000);
+
+		const orgName = `Task Collab Org ${Date.now()}`;
+		const projectName = `Task Collab Project ${Date.now()}`;
+		const parentTitle = `Parent Task ${Date.now()}`;
+		const subtaskTitle = `Subtask ${Date.now()}`;
+		const commentBody = `Comment ${Date.now()}`;
+		const assigneeEmail = `task-assignee-${Date.now()}@example.test`;
+
+		const loginRes = await page.context().request.post("/test-support/login", {
+			data: { orgName },
+		});
+		const loginBody = await loginRes.text();
+		expect(loginRes.ok(), `login failed: ${loginRes.status()} ${loginBody}`).toBeTruthy();
+
+		const createProjectRes = await page.context().request.post("/test-support/projects", {
+			data: { name: projectName },
+		});
+		const createProjectBody = await createProjectRes.text();
+		expect(
+			createProjectRes.ok(),
+			`create project failed: ${createProjectRes.status()} ${createProjectBody}`
+		).toBeTruthy();
+
+		const seedUserRes = await page.context().request.post("/test-support/users", {
+			data: { email: assigneeEmail, name: "Task Assignee" },
+		});
+		const seedUserBody = await seedUserRes.text();
+		expect(
+			seedUserRes.ok(),
+			`seed user failed: ${seedUserRes.status()} ${seedUserBody}`
+		).toBeTruthy();
+		const seedUserJson = JSON.parse(seedUserBody) as {
+			user?: { id?: string };
+		};
+		const assigneeUserId = seedUserJson.user?.id;
+		expect(assigneeUserId).toBeTruthy();
+
+		await page.goto("/members");
+		await page.getByTestId("member-add-email").fill(assigneeEmail);
+		await page.getByTestId("member-add-role").selectOption("MEMBER");
+		await page.getByTestId("member-add-submit").click();
+		await expect(page.getByText(assigneeEmail)).toBeVisible();
+
+		await page.goto("/tasks");
+		await page.getByTestId("task-create-project").selectOption({ label: projectName });
+		await page.getByTestId("task-create-title").fill(parentTitle);
+		await page.getByTestId("task-create-submit").click();
+
+		await expect(page.getByTestId("tasks-status")).toContainText("Task created.");
+		const row = page.getByTestId(/task-row-/).filter({ hasText: parentTitle }).first();
+		await expect(row).toBeVisible();
+		const rowTestId = await row.getAttribute("data-testid");
+		expect(rowTestId).toBeTruthy();
+		const taskId = rowTestId!.replace("task-row-", "");
+		await expect(row).toContainText("Created by: E2E Test User");
+
+		await page
+			.getByTestId(`task-update-assignee-${taskId}`)
+			.selectOption(assigneeUserId!);
+		await expect(page.getByTestId(`task-update-assignee-${taskId}`)).toHaveValue(
+			assigneeUserId!
+		);
+		await row.getByRole("button", { name: "Save changes" }).click();
+		await expect(page.getByTestId("tasks-status")).toContainText("Task updated.");
+		await expect(page.getByTestId(`task-activity-${taskId}`)).toContainText(
+			"task.update"
+		);
+
+		await row.getByPlaceholder("Subtask title").fill(subtaskTitle);
+		await row.getByRole("button", { name: "Add subtask" }).click();
+		await expect(page.getByTestId("tasks-status")).toContainText("Subtask created.");
+		await expect(row).toContainText(subtaskTitle);
+
+		await row.getByPlaceholder("Add comment").fill(commentBody);
+		await row.getByRole("button", { name: "Comment" }).click();
+		await expect(page.getByTestId("tasks-status")).toContainText("Comment added.");
+		await expect(row).toContainText(commentBody);
+		await expect(row).toContainText("task.comment.add");
+
+		await page.context().request.post("/test-support/logout");
+	});
+});
