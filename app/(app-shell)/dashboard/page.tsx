@@ -68,7 +68,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 					AI project reports
 				</Link>
 			</div>
-			<div className="mt-6 rounded-lg border border-red-300 bg-red-50 p-4">
+			<div className="mt-6 rounded-lg border border-red-300 bg-red-50 p-4 w-fit">
 				<h2 className="text-base font-semibold text-red-900">Danger zone</h2>
 				<p className="mt-1 text-sm text-red-800">
 					Deleting this workspace permanently removes projects, tasks, members,
@@ -95,7 +95,7 @@ export default async function DashboardPage({ searchParams }: DashboardPageProps
 							<input
 								id="confirmName"
 								name="confirmName"
-								className="w-full rounded-md border border-red-300 bg-white px-3 py-2 text-sm"
+								className="w-full rounded-md border border-red-300 bg-white px-3 py-2 text-sm text-black"
 								placeholder={ctx.org.name}
 								data-testid="dashboard-delete-org-confirm-name"
 								required
