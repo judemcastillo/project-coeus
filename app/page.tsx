@@ -4,12 +4,13 @@ import { CubeCluster } from "@/components/CubeCluster";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Aperture, ArrowRight, BarChart2, Scale } from "lucide-react";
+import Spline from "@splinetool/react-spline/next";
 
 export default function Home() {
 	return (
 		<main className="relative min-h-[calc(100vh-4rem)] overflow-hidden ">
 			<div className="relative mx-auto flex flex-col min-h-[calc(100vh-4rem)] max-w-8xl items-center gap-14 px-6   lg:px-10">
-				<section className="relative  grid  max-w-7xl items-center gap-14 px-6 py-16  lg:grid-cols-[minmax(0,1fr)_minmax(420px,560px)] ">
+				<section className="relative  grid  max-w-7xl items-center gap-10 px-6 py-16  lg:grid-cols-[minmax(0,1fr)_minmax(420px,560px)] ">
 					<div className="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
 						<h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-6 text-foreground ">
 							Architect the Future of <br />
@@ -42,9 +43,9 @@ export default function Home() {
 							</Link>
 						</div>
 					</div>
-					<Card className="relative flex items-center justify-center">
-						<CubeCluster />
-					</Card>
+					<div className="absolute inset-0   flex items-center justify-center h-full z-40 w-1/2 left-150">
+						<Spline scene="https://prod.spline.design/xxWy2Tzqytu9bboA/scene.splinecode" />
+					</div>
 				</section>
 
 				{/* Features Section */}

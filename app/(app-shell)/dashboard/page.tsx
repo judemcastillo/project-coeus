@@ -1,4 +1,5 @@
 import { getTenantCtx } from "@/features/auth/ctx";
+import { getDbUser } from "@/features/auth/getDbUser";
 import Link from "next/link";
 import { deleteOrgAction } from "./actions";
 
@@ -24,15 +25,25 @@ function getStatusMessage(params: Record<string, string | string[] | undefined>)
 	return null;
 }
 
+function getFirstName(name: string | null | undefined) {
+	if (!name) return null;
+	const [firstName] = name.trim().split(/\s+/);
+	return firstName || null;
+}
+
 export default async function DashboardPage({ searchParams }: DashboardPageProps) {
-	const ctx = await getTenantCtx();
+	const [ctx, dbUser] = await Promise.all([getTenantCtx(), getDbUser()]);
 	const params = (await searchParams) ?? {};
 	const status = getStatusMessage(params);
 	const canDeleteOrg = ctx.role === "OWNER";
+	const firstName = getFirstName(dbUser.name);
 
 	return (
 		<main className="p-6">
-			<h1 className="text-2xl font-semibold">Dashboard</h1>
+			<h1 className="text-2xl font-semibold">
+				{firstName ? `Welcome back, ${firstName}` : "Welcome back"}
+			</h1>
+			<p className="mt-1 text-sm text-muted-foreground">Dashboard</p>
 			<div className="mt-4 rounded-lg border p-4">
 				<div>Workspace: {ctx.org.name}</div>
 				<div>Plan: {ctx.org.plan}</div>

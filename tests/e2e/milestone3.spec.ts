@@ -100,8 +100,8 @@ test.describe("Milestone 4 org switching", () => {
 		await page.goto("/dashboard");
 		await expect(page.getByText(`Workspace: ${firstOrgName}`)).toBeVisible();
 
-		await page.getByText(`Org: ${firstOrgName}`).click();
-		await page.getByRole("button", { name: secondOrgName }).click();
+		await page.getByTestId("org-switcher-trigger").click();
+		await page.getByRole("button", { name: new RegExp(secondOrgName) }).click();
 
 		await expect(page.getByText(`Workspace: ${secondOrgName}`)).toBeVisible();
 		await expect(page.getByText("Your role: OWNER")).toBeVisible();
@@ -162,7 +162,7 @@ test.describe("Milestone 5 project tenant isolation", () => {
 		).toBeVisible();
 
 		await page.getByTestId("org-switcher-trigger").click();
-		await page.getByRole("button", { name: secondOrgName }).click();
+		await page.getByRole("button", { name: new RegExp(secondOrgName) }).click();
 
 		await expect(page.getByText(`Workspace: ${secondOrgName}`)).toBeVisible();
 		await page.getByRole("link", { name: "Open projects" }).click();

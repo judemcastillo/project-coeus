@@ -7,25 +7,34 @@ import {
 	Sidebar,
 	SidebarContent,
 	SidebarFooter,
-	SidebarGroup,
 	SidebarHeader,
+	SidebarInset,
 	SidebarMenuButton,
 	SidebarMenuItem,
 	SidebarProvider,
-	SidebarSeparator,
+	SidebarTrigger,
 } from "@/components/ui/sidebar";
+import {
+	ChartColumnBig,
+	FolderKanban,
+	FolderOpen,
+	LayoutDashboard,
+	Sparkle,
+	Users,
+} from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 
 type AppShellLayoutProps = {
 	children: ReactNode;
 };
 
 const navItems = [
-	{ href: "/dashboard", label: "Dashboard" },
-	{ href: "/projects", label: "Projects" },
-	{ href: "/tasks", label: "Tasks" },
-	{ href: "/members", label: "Members" },
-	{ href: "/settings/usage", label: "Usage" },
-	{ href: "/ai/project-report", label: "AI Reports" },
+	{ href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+	{ href: "/projects", label: "Projects", icon: FolderKanban },
+	{ href: "/tasks", label: "Tasks", icon: FolderOpen },
+	{ href: "/members", label: "Members", icon: Users },
+	{ href: "/settings/usage", label: "Usage", icon: ChartColumnBig },
+	{ href: "/ai/project-report", label: "AI Reports", icon: Sparkle },
 ];
 
 export default async function AppShellLayout({
@@ -39,18 +48,9 @@ export default async function AppShellLayout({
 	return (
 		<div>
 			<SidebarProvider>
-				<Sidebar collapsible="icon">
+				<Sidebar collapsible="icon" className="relative">
 					<SidebarHeader>
-						<div className="mt-18 flex flex-col gap-5 items-start ">
-							<div>
-								<div className="text-xs uppercase tracking-wide text-muted-foreground">
-									Workspace
-								</div>
-								<div className="mt-1 font-semibold">{ctx.org.name}</div>
-								<div className="text-xs text-muted-foreground">
-									{ctx.org.plan} · {ctx.role}
-								</div>
-							</div>
+						<SidebarMenuItem>
 							<OrgSwitcher
 								orgMemberships={orgMemberships}
 								activeMembership={{
@@ -62,22 +62,40 @@ export default async function AppShellLayout({
 									role: ctx.role,
 								}}
 							/>
-						</div>
+						</SidebarMenuItem>
 					</SidebarHeader>
-					<div className="h-[1px] bg-accent-foreground/10 mx-2 my-3"></div>
-					<SidebarMenuItem>
+					<div className="h-px bg-accent-foreground/10 mx-2 my-3"></div>
+					<SidebarContent>
 						{navItems.map((item) => (
-							<SidebarMenuButton key={item.href} asChild>
-								<Link href={item.href} className="text-lg py-5 rounded-none">
-									{item.label}
+							<SidebarMenuItem key={item.href} className="px-3">
+								<Link href={item.href}>
+									<SidebarMenuButton
+										tooltip={item.label}
+										className="m-auto text-sm py-3 h-fit cursor-pointer"
+									>
+										{item.icon && <item.icon />}
+
+										<span>{item.label}</span>
+									</SidebarMenuButton>
 								</Link>
-							</SidebarMenuButton>
+							</SidebarMenuItem>
 						))}
-					</SidebarMenuItem>
+					</SidebarContent>
 					<SidebarFooter />
 				</Sidebar>
 
-				<main className="w-full">{children}</main>
+				<main className="w-full">
+					<SidebarInset>
+						<header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+							<SidebarTrigger className="-ml-1 ml-4" />
+							<Separator
+								orientation="vertical"
+								className="mr-2 data-[orientation=vertical]:h-4"
+							/>
+						</header>
+						{children}
+					</SidebarInset>
+				</main>
 			</SidebarProvider>
 		</div>
 	);

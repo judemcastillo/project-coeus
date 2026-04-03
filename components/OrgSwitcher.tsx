@@ -1,17 +1,18 @@
+"use client";
 import React from "react";
 import Link from "next/link";
 import { selectOrgAction } from "@/app/org/select/actions";
 import { OrgRole, Plan } from "@/generated/prisma/browser";
 import {
-	DropdownMenu,
-	DropdownMenuCheckboxItem,
 	DropdownMenuContent,
 	DropdownMenuGroup,
 	DropdownMenuLabel,
 	DropdownMenuSeparator,
+	DropdownMenu,
 	DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
-import { Button } from "./ui/button";
+import { SidebarMenuButton, SidebarMenuItem, useSidebar } from "./ui/sidebar";
+import { Check, ChevronsUpDown } from "lucide-react";
 
 type OrgSwitcherProps = {
 	orgMemberships: {
@@ -39,69 +40,39 @@ export default function OrgSwitcher({
 	orgMemberships: OrgSwitcherProps["orgMemberships"];
 	activeMembership: OrgSwitcherProps["activeMembership"];
 }) {
+	const { isMobile } = useSidebar();
 	return (
-		<div className="relative" data-testid="org-switcher">
-			{/* <summary
-				data-testid="org-switcher-trigger"
-				className="list-none cursor-pointer rounded-md border px-3 py-2 text-sm select-none"
-			>
-				{activeMembership
-					? `Org: ${activeMembership.organization.name}`
-					: "Switch org"}
-			</summary>
-			<div
-				data-testid="org-switcher-menu"
-				className="absolute right-0 mt-2 w-72 rounded-lg border bg-background p-2 shadow-lg"
-			>
-				<div className="px-2 pb-2 text-xs text-muted-foreground">
-					Switch workspace
-				</div>
-				<div className="space-y-1">
-					{orgMemberships.map((membership) => {
-						const isActive =
-							membership.organizationId === activeMembership?.organizationId;
-						return (
-							<form key={membership.organizationId} action={selectOrgAction}>
-								<input
-									type="hidden"
-									name="orgId"
-									value={membership.organizationId}
-								/>
-								<button
-									type="submit"
-									data-testid={`org-switch-option-${membership.organizationId}`}
-									className={`w-full rounded-md border px-3 py-2 text-left text-sm cursor-pointer ${
-										isActive ? "bg-muted" : "hover:bg-foreground/2"
-									}`}
-								>
-									<div className="font-medium">
-										{membership.organization.name}
-									</div>
-									<div className="text-xs text-muted-foreground">
-										{membership.organization.plan} · {membership.role}
-										{isActive ? " · Active" : ""}
-									</div>
-								</button>
-							</form>
-						);
-					})}
-				</div>
-				<Link
-					href="/org/select"
-					className="mt-2 block rounded-md px-2 py-2 text-xs text-muted-foreground hover:bg-muted"
-				>
-					Open full org selector
-				</Link>
-			</div> */}
+		<SidebarMenuItem className="relative" data-testid="org-switcher">
 			<DropdownMenu>
 				<DropdownMenuTrigger asChild>
-					<Button variant={"outline"} size={"sm"} data-testid="org-switcher-trigger" className="px-4 py-3 bg-accent-foreground/15">
-						{activeMembership
-							? `Org: ${activeMembership.organization.name}`
-							: "Switch org"}
-					</Button>
+					<SidebarMenuButton
+						size="lg"
+						data-testid="org-switcher-trigger"
+						className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+					>
+						<div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+							<div className="size-4 bg-primary" />
+						</div>
+						<div className="grid flex-1 text-left text-sm leading-tight">
+							<span className="truncate font-medium">
+								{activeMembership
+									? `Org: ${activeMembership.organization.name}`
+									: "Switch org"}
+							</span>
+							<span className="truncate text-xs">
+								{activeMembership?.organization.plan} · {activeMembership?.role}
+							</span>
+						</div>
+						<ChevronsUpDown className="ml-auto" />
+					</SidebarMenuButton>
 				</DropdownMenuTrigger>
-				<DropdownMenuContent>
+				<DropdownMenuContent
+					data-testid="org-switcher-menu"
+					className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+					align="start"
+					side={isMobile ? "bottom" : "right"}
+					sideOffset={4}
+				>
 					<DropdownMenuGroup>
 						<DropdownMenuLabel>Switch workspace</DropdownMenuLabel>
 					</DropdownMenuGroup>
@@ -111,33 +82,33 @@ export default function OrgSwitcher({
 							const isActive =
 								membership.organizationId === activeMembership?.organizationId;
 							return (
-								<DropdownMenuCheckboxItem
-									key={membership.organizationId}
-									className={`w-full rounded-md border pl-3 py-2 text-left text-sm cursor-pointer ${
-										isActive ? "bg-muted" : "hover:bg-foreground/2"
-									}`}
-								>
-									<form action={selectOrgAction}>
-										<input
-											type="hidden"
-											name="orgId"
-											value={membership.organizationId}
-										/>
-										<button
-											type="submit"
-											data-testid={`org-switch-option-${membership.organizationId}`}
-										>
-											<div className="font-medium text-left">
+								<form key={membership.organizationId} action={selectOrgAction}>
+									<input
+										type="hidden"
+										name="orgId"
+										value={membership.organizationId}
+									/>
+									<button
+										type="submit"
+										data-testid={`org-switch-option-${membership.organizationId}`}
+										className={`flex w-full items-start justify-between rounded-md border px-3 py-2 text-left text-sm ${
+											isActive ? "bg-muted" : "hover:bg-accent"
+										}`}
+									>
+										<div>
+											<div className="font-medium">
 												{membership.organization.name}
 											</div>
 											<div className="text-xs text-muted-foreground">
 												{membership.organization.plan} · {membership.role}
 												{isActive ? " · Active" : ""}
 											</div>
-										</button>
-									</form>
-									<DropdownMenuCheckboxItem checked={isActive} />
-								</DropdownMenuCheckboxItem>
+										</div>
+										{isActive ? (
+											<Check className="mt-0.5 size-4 text-muted-foreground" />
+										) : null}
+									</button>
+								</form>
 							);
 						})}
 					</DropdownMenuGroup>
@@ -154,6 +125,6 @@ export default function OrgSwitcher({
 					</DropdownMenuGroup>
 				</DropdownMenuContent>
 			</DropdownMenu>
-		</div>
+		</SidebarMenuItem>
 	);
 }
